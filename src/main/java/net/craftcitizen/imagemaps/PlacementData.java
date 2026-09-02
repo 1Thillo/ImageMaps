@@ -1,6 +1,6 @@
 package net.craftcitizen.imagemaps;
 
-import de.craftlancer.core.util.Tuple;
+import net.craftcitizen.imagemaps.util.Tuple;
 
 /**
  * Data associated with placing an image.
@@ -34,8 +34,6 @@ public class PlacementData {
     /**
      * Whether the placed item frame will have the "fixed" property set. A fixed frame can't be destroyed or modified by
      * survival players.
-     * <p>
-     * Only supported in 1.16 or higher!
      *
      * @return whether the placed frames will be fixed or not
      */
@@ -46,8 +44,6 @@ public class PlacementData {
     /**
      * Whether the placed item frame will have the "invisible" property set. An invisible frame won't be rendered,
      * leaving only the item/map visible.
-     * <p>
-     * Only supported in 1.16 or higher!
      *
      * @return whether the placed frames will be invisible or not
      */
@@ -57,8 +53,6 @@ public class PlacementData {
 
     /**
      * Whether the placed item frame will be a glowing one.
-     * <p>
-     * Only supported in 1.17 or higher!
      *
      * @return whether the placed frames will be a glowing one
      */

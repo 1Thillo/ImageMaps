@@ -7,5 +7,6 @@ public enum PlacementResult {
     INSUFFICIENT_WALL,
     INSUFFICIENT_SPACE,
     SUCCESS,
+    MISSING_IMAGE,
     OVERLAPPING_ENTITY;
 }
