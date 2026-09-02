@@ -1,10 +1,9 @@
 package net.craftcitizen.imagemaps;
 
+import net.craftcitizen.imagemaps.util.MessageLevel;
+import net.craftcitizen.imagemaps.util.MessageUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-
-import de.craftlancer.core.util.MessageLevel;
-import de.craftlancer.core.util.MessageUtil;
 
 public class ImageMapCleanupCommand extends ImageMapSubCommand {
 
@@ -13,25 +12,19 @@ public class ImageMapCleanupCommand extends ImageMapSubCommand {
     }
 
     @Override
-    protected String execute(CommandSender sender, Command cmd, String label, String[] args) {
-        if (!checkSender(sender)) {
-            MessageUtil.sendMessage(getPlugin(), sender, MessageLevel.WARNING, "You can't run this command.");
-            return null;
-        }
-
+    protected void execute(CommandSender sender, Command cmd, String label, String[] args) {
         int removedMaps = getPlugin().cleanupMaps();
-        MessageUtil.sendMessage(getPlugin(), sender, MessageLevel.NORMAL,
-                                "Removed " + removedMaps + " invalid images/maps.");
-        return null;
+        MessageUtil.sendMessage(sender, MessageLevel.NORMAL, "Removed " + removedMaps + " invalid images/maps.");
     }
 
     @Override
     public void help(CommandSender sender) {
-        MessageUtil.sendMessage(getPlugin(), sender, MessageLevel.NORMAL,
+        MessageUtil.sendMessage(sender, MessageLevel.NORMAL,
                                 "Removes maps with invalid IDs or missing image files.");
-        MessageUtil.sendMessage(getPlugin(), sender, MessageLevel.WARNING,
+        MessageUtil.sendMessage(sender, MessageLevel.WARNING,
                                 "This action is not reverseable. It is recommended to create a backup of your maps.yml first!");
-        MessageUtil.sendMessage(getPlugin(), sender, MessageLevel.INFO, "Usage: /imagemap cleanup");
+        MessageUtil.sendMessage(sender, MessageLevel.WARNING,
+                                "It also asks the server for every single map, which loads all of them into memory.");
+        MessageUtil.sendMessage(sender, MessageLevel.INFO, "Usage: /imagemap cleanup");
     }
-
 }
