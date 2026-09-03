@@ -90,6 +90,8 @@ config option are gone, the command replaces them.
   * converts images to map colours ahead of time, so nothing has to be converted while players are looking
 * /imagemap list [page]
   * lists all images in the `images` folder
+* /imagemap version
+  * shows which version of the plugin is running
 * /imagemap help [command]
   * prints help for commands
 
@@ -98,24 +100,30 @@ File names containing spaces have to be quoted, for example `/imagemap info "my 
 ### Permissions
 Every sub command has its own permission, so they can be handed out individually.
 
-`imagemaps.*` - grants access to all permissions (default: op)
-`imagemaps.place` - /imagemap place (default: op)
-`imagemaps.download` - /imagemap download (default: op)
-`imagemaps.delete` - /imagemap delete (default: op)
-`imagemaps.info` - /imagemap info (default: op)
-`imagemaps.list` - /imagemap list (default: op)
-`imagemaps.reload` - /imagemap reload (default: op)
-`imagemaps.bake` - /imagemap bake (default: op)
-`imagemaps.cleanup` - /imagemap cleanup (default: op)
-`imagemaps.debuginfo` - /imagemap debuginfo (default: op)
-`imagemaps.help` - /imagemap help (default: op)
+Available to everyone:
 
-`imagemaps.frame` - /imagemap frame, **default: everyone**, with one child per property:
-* `imagemaps.frame.invisible` - showing and hiding frames (default: everyone)
-* `imagemaps.frame.fixed` - locking and unlocking frames (default: everyone)
-* `imagemaps.frame.rotatable` - releasing frames for rotation (default: everyone)
+`imagemaps.version` - /imagemap version
+`imagemaps.help` - /imagemap help
+`imagemaps.frame` - /imagemap frame, with one child per property:
+* `imagemaps.frame.invisible` - showing and hiding frames
+* `imagemaps.frame.fixed` - locking and unlocking frames
+* `imagemaps.frame.rotatable` - releasing frames for rotation
 
-Revoke `imagemaps.frame` in LuckPerms to take it away again, or a single child to restrict one property.
+Operators only:
+
+`imagemaps.place` - /imagemap place
+`imagemaps.download` - /imagemap download
+`imagemaps.delete` - /imagemap delete
+`imagemaps.info` - /imagemap info
+`imagemaps.list` - /imagemap list
+`imagemaps.reload` - /imagemap reload
+`imagemaps.bake` - /imagemap bake
+`imagemaps.cleanup` - /imagemap cleanup
+`imagemaps.debuginfo` - /imagemap debuginfo
+`imagemaps.*` - all of the above
+
+On a public server consider revoking `imagemaps.frame.fixed` and `imagemaps.frame.rotatable`, or
+`imagemaps.frame` as a whole: they let any player unlock a placed image and then break or rotate it.
 
 ### Configuration
 The plugin has no configuration options. The `toggleItem` option of previous versions is gone together with

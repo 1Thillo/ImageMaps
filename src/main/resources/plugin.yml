@@ -18,6 +18,7 @@ commands:
           /imagemap cleanup - removes invalid maps from the plugin
           /imagemap debuginfo - prints debug output
           /imagemap list [page] - lists all files in the images folder
+          /imagemap version - shows which version of the plugin is running
           /imagemap help [command] - shows help
 permissions:
     imagemaps.*:
@@ -35,6 +36,7 @@ permissions:
           imagemaps.cleanup: true
           imagemaps.debuginfo: true
           imagemaps.help: true
+          imagemaps.version: true
     imagemaps.place:
         description: Allows placing images
         default: op
@@ -64,6 +66,9 @@ permissions:
         default: op
     imagemaps.help:
         description: Allows viewing the command help
+        default: true
+    imagemaps.version:
+        description: Allows viewing the plugin version
         default: true
     imagemaps.frame:
         description: Allows changing the item frames of a placed image
