@@ -6,6 +6,7 @@ import net.craftcitizen.imagemaps.util.Tuple;
 import net.craftcitizen.imagemaps.util.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Rotation;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -14,7 +15,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
-import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.GlowItemFrame;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.ItemFrame;
@@ -22,12 +23,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.server.MapInitializeEvent;
+import io.papermc.paper.event.player.PlayerItemFrameChangeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -45,7 +47,9 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -82,7 +86,7 @@ public class ImageMaps extends JavaPlugin implements Listener {
     private final Map<UUID, PlacementData> pendingPlacements = new HashMap<>();
 
     private MapTileCache tileCache;
-    private Material toggleItem;
+    private NamespacedKey rotatableKey;
 
     static {
         ConfigurationSerialization.registerClass(ImageMap.class);
@@ -93,18 +97,11 @@ public class ImageMaps extends JavaPlugin implements Listener {
         if (!getImagesDir().exists() && !getImagesDir().mkdirs())
             getLogger().warning("Failed to create the images directory!");
 
-        saveDefaultConfig();
-
-        toggleItem = Material.matchMaterial(getConfig().getString("toggleItem", Material.WOODEN_HOE.name()));
-        if (toggleItem == null) {
-            toggleItem = Material.WOODEN_HOE;
-            getLogger().warning("Given toggleItem is invalid, defaulting to WOODEN_HOE");
-        }
-
         // Must happen on the main thread before any conversion runs, see ImageTiles#warmColorCache.
         ImageTiles.warmColorCache();
 
         tileCache = new MapTileCache(this);
+        rotatableKey = new NamespacedKey(this, "rotatable");
 
         ImageMapCommandHandler commandHandler = new ImageMapCommandHandler(this);
         getCommand("imagemap").setExecutor(commandHandler);
@@ -135,32 +132,92 @@ public class ImageMaps extends JavaPlugin implements Listener {
         return new File(getDataFolder(), IMAGES_DIR);
     }
 
+    /**
+     * Stops a right click from rotating a map that is part of an image.
+     * <p>
+     * Rotating one tile of a multi map image tears a hole into it and there is no way to put it back other than
+     * placing the image again. Vanilla lets anyone do this with an empty hand.
+     */
     @EventHandler(ignoreCancelled = true)
-    public void onToggleFrameProperty(PlayerInteractEntityEvent event) {
-        if (event.getRightClicked().getType() != EntityType.ITEM_FRAME
-            && event.getRightClicked().getType() != EntityType.GLOW_ITEM_FRAME)
+    public void onFrameRotate(PlayerItemFrameChangeEvent event) {
+        if (event.getAction() != PlayerItemFrameChangeEvent.ItemFrameChangeAction.ROTATE
+            || getImageMap(event.getItemFrame()) == null || isRotatable(event.getItemFrame()))
             return;
 
-        ItemFrame frame = (ItemFrame) event.getRightClicked();
-        Player p = event.getPlayer();
+        event.setCancelled(true);
 
-        if (p.getInventory().getItemInMainHand().getType() != toggleItem)
-            return;
+        // The client predicts the rotation and is sent no correction when the interaction is refused, so the
+        // image looks torn until the frame happens to be sent again. Re-setting the item marks the frame's data
+        // dirty, which resyncs it to everyone watching.
+        ItemFrame frame = event.getItemFrame();
+        getServer().getGlobalRegionScheduler().run(this, task -> frame.setItem(frame.getItem(), false));
+    }
 
-        if (p.isSneaking()) {
-            if (p.hasPermission("imagemaps.toggleFixed")) {
-                event.setCancelled(true);
-                frame.setFixed(!frame.isFixed());
-                MessageUtil.sendMessage(p, MessageLevel.INFO,
-                                        String.format("Frame set to %s.", frame.isFixed() ? "fixed" : "unfixed"));
-            }
+    /**
+     * Whether this frame may be rotated by players.
+     * <p>
+     * Rotating one tile of an image tears a hole into it, so image frames are protected by default. The flag lives
+     * on the frame itself, which means it persists with the entity and needs no bookkeeping of its own.
+     */
+    boolean isRotatable(ItemFrame frame) {
+        Byte value = frame.getPersistentDataContainer().get(rotatableKey, PersistentDataType.BYTE);
+
+        return value != null && value != 0;
+    }
+
+    void setRotatable(ItemFrame frame, boolean rotatable) {
+        if (rotatable)
+            frame.getPersistentDataContainer().set(rotatableKey, PersistentDataType.BYTE, (byte) 1);
+        else
+            frame.getPersistentDataContainer().remove(rotatableKey);
+    }
+
+    /**
+     * The image map shown by an item frame, or null if the frame does not hold one of ours.
+     */
+    ImageMap getImageMap(ItemFrame frame) {
+        ItemStack item = frame.getItem();
+
+        if (item.getType() != Material.FILLED_MAP || !(item.getItemMeta() instanceof MapMeta meta))
+            return null;
+
+        MapView view = meta.getMapView();
+
+        return view == null ? null : mapsById.get(view.getId());
+    }
+
+    /**
+     * Every item frame belonging to the same image as the given one, or just that frame when it does not hold an
+     * image map. The search is bounded by how large the image is, so it never looks further than it has to.
+     */
+    Collection<ItemFrame> getImageFrames(ItemFrame origin) {
+        ImageMap definition = getImageMap(origin);
+
+        if (definition == null)
+            return List.of(origin);
+
+        ImageInfo info = getImageInfo(definition.getFilename());
+        int reach = 2;
+
+        if (info != null) {
+            Tuple<Integer, Integer> size = ImageTiles.getTileCount(info.width(), info.height(),
+                                                                   definition.getScale());
+            reach += Math.max(size.getKey(), size.getValue());
         }
-        else if (p.hasPermission("imagemaps.toggleVisible")) {
-            event.setCancelled(true);
-            frame.setVisible(!frame.isVisible());
-            MessageUtil.sendMessage(p, MessageLevel.INFO,
-                                    String.format("Frame set to %s.", frame.isVisible() ? "visible" : "invisible"));
+
+        List<ItemFrame> frames = new ArrayList<>();
+
+        for (Entity entity : origin.getWorld().getNearbyEntities(origin.getLocation(), reach, reach, reach,
+                                                                 ItemFrame.class::isInstance)) {
+            ItemFrame frame = (ItemFrame) entity;
+            ImageMap other = getImageMap(frame);
+
+            if (other != null && other.getFilename().equalsIgnoreCase(definition.getFilename())
+                && other.getScale() == definition.getScale())
+                frames.add(frame);
         }
+
+        return frames.isEmpty() ? List.of(origin) : frames;
     }
 
     /**

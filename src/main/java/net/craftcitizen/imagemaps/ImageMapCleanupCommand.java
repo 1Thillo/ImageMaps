@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender;
 public class ImageMapCleanupCommand extends ImageMapSubCommand {
 
     public ImageMapCleanupCommand(ImageMaps plugin) {
-        super("imagemaps.admin", plugin, true);
+        super("imagemaps.cleanup", plugin, true);
     }
 
     @Override

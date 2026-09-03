@@ -13,11 +13,15 @@ commands:
           /imagemap delete <filename> - deletes an image
           /imagemap info <filename> - displays image info
           /imagemap reload <filename> - reloads an image from disk
+          /imagemap frame <invisible|fixed|rotatable> <true|false> - changes the frames of the image you look at
           /imagemap bake [filename] - converts images to map colours ahead of time
+          /imagemap cleanup - removes invalid maps from the plugin
+          /imagemap debuginfo - prints debug output
           /imagemap list [page] - lists all files in the images folder
           /imagemap help [command] - shows help
 permissions:
     imagemaps.*:
+        description: Grants access to every ImageMaps command
         default: op
         children:
           imagemaps.place: true
@@ -26,28 +30,54 @@ permissions:
           imagemaps.info: true
           imagemaps.list: true
           imagemaps.reload: true
+          imagemaps.frame: true
+          imagemaps.bake: true
+          imagemaps.cleanup: true
+          imagemaps.debuginfo: true
           imagemaps.help: true
-          imagemaps.toggleFixed: true
-          imagemaps.toggleVisible: true
     imagemaps.place:
+        description: Allows placing images
         default: op
     imagemaps.download:
+        description: Allows downloading images from a URL
         default: op
     imagemaps.delete:
+        description: Allows deleting image files
         default: op
     imagemaps.info:
+        description: Allows viewing image details
         default: op
     imagemaps.list:
+        description: Allows listing the images folder
         default: op
     imagemaps.reload:
+        description: Allows reloading an image from disk
+        default: op
+    imagemaps.bake:
+        description: Allows converting images to map colours ahead of time
+        default: op
+    imagemaps.cleanup:
+        description: Allows removing invalid maps from the plugin
+        default: op
+    imagemaps.debuginfo:
+        description: Allows printing debug output
         default: op
     imagemaps.help:
-        default: op
-    imagemaps.toggleFixed:
-        default: op
-    imagemaps.toggleVisible:
-        default: op
-    imagemaps.admin:
-        default: op
+        description: Allows viewing the command help
+        default: true
+    imagemaps.frame:
+        description: Allows changing the item frames of a placed image
+        default: true
         children:
-          imagemaps.*: true
+          imagemaps.frame.invisible: true
+          imagemaps.frame.fixed: true
+          imagemaps.frame.rotatable: true
+    imagemaps.frame.invisible:
+        description: Allows showing and hiding the item frames of a placed image
+        default: true
+    imagemaps.frame.fixed:
+        description: Allows locking and unlocking the item frames of a placed image
+        default: true
+    imagemaps.frame.rotatable:
+        description: Allows releasing the item frames of a placed image for rotation
+        default: true

@@ -10,7 +10,7 @@ import javax.imageio.ImageIO;
 public class ImageMapDebugInfoCommand extends ImageMapSubCommand {
 
     public ImageMapDebugInfoCommand(ImageMaps plugin) {
-        super("imagemaps.admin", plugin, true);
+        super("imagemaps.debuginfo", plugin, true);
     }
 
     @Override
