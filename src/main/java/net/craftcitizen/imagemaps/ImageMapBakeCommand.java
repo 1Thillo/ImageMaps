@@ -23,7 +23,7 @@ import java.util.Set;
 public class ImageMapBakeCommand extends ImageMapSubCommand {
 
     public ImageMapBakeCommand(ImageMaps plugin) {
-        super("imagemaps.admin", plugin, true);
+        super("imagemaps.bake", plugin, true);
     }
 
     @Override

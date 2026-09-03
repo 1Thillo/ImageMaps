@@ -21,6 +21,7 @@ public class ImageMapHelpCommand extends ImageMapSubCommand {
         Map.entry("delete", "<filename> - deletes an image"),
         Map.entry("info", "<filename> - displays image info"),
         Map.entry("reload", "<filename> - reloads an image from disk"),
+        Map.entry("frame", "<invisible|fixed|rotatable> <true|false> - changes the frames of the image you look at"),
         Map.entry("bake", "[filename] - converts images to map colours ahead of time"),
         Map.entry("cleanup", " - removes invalid maps from the plugin"),
         Map.entry("debuginfo", " - prints debug output"),

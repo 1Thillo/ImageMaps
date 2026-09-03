@@ -49,17 +49,29 @@ found here: https://minecraft.wiki/w/Map_item_format#Color_table
 
 ![Example of color conversion](./colorConversion.png)
 
-The invisible and fixed (-> can't be modified) item frame properties can be changed for any item frame
-by using a configurable (default a wooden hoe) item. Right click to toggle visibility and Shift+Right click to
-toggle the fixed state.
+### Item frames
+The item frames of a placed image are changed with one command, which always applies to every frame of the image
+you are looking at rather than the single one you aim at:
 
-### Memory use
-The plugin keeps no image data in memory. Converting an image is expensive but its result never changes, so
-each map's 16 KiB of colour indices is written to the `cache` folder once and read back on demand. A map that
-nobody is looking at costs nothing beyond its entry in `maps.yml`.
+```
+/imagemap frame invisible true     hides the frames, leaving only the image
+/imagemap frame fixed true         locks the frames so they cannot be broken or modified
+/imagemap frame rotatable true     allows players to rotate the individual maps again
+```
 
-If you have many large images, the disk cache grows by 16 KiB per map. An image covering a 5x3 block wall
-therefore takes about 240 KiB of cache.
+Each takes `true` or `false`.
+
+Rotating a single tile of a multi map image tears a hole into it that can only be repaired by placing the image
+again, so image frames refuse rotation by default. `rotatable true` gives it back for that image. A frame that is
+`fixed` cannot be rotated either way, because Minecraft refuses every interaction with a fixed frame.
+
+The `rotatable` flag is stored on the frame itself and survives restarts.
+
+Previous versions changed the invisible and fixed properties by right clicking a frame with a configurable item,
+a wooden hoe by default. That never worked reliably: a plain right click on a frame is answered by the client
+with an interaction on the block behind it, so the server never learns about it, and a frame that had been set to
+fixed refused every further interaction, which made the change impossible to undo. The item and the `toggleItem`
+config option are gone, the command replaces them.
 
 ### Commands
 * /imagemap place &lt;filename> [frameInvisible] [frameFixed] [frameGlowing] [size]
@@ -72,6 +84,8 @@ therefore takes about 240 KiB of cache.
   * prints info, such as resolution and expected size
 * /imagemap reload &lt;filename>
   * reloads an image, to be used when the image file changed
+* /imagemap frame &lt;invisible|fixed|rotatable> &lt;true|false>
+  * changes the item frames of the image you are looking at
 * /imagemap bake [filename]
   * converts images to map colours ahead of time, so nothing has to be converted while players are looking
 * /imagemap list [page]
@@ -82,19 +96,30 @@ therefore takes about 240 KiB of cache.
 File names containing spaces have to be quoted, for example `/imagemap info "my image.png"`.
 
 ### Permissions
-`imagemaps.*` - grants access to all permissions
-`imagemaps.place` - grants access to /imagemap place command
-`imagemaps.download` - grants access to /imagemap download command
-`imagemaps.delete` - grants access to /imagemap delete command
-`imagemaps.info` - grants access to /imagemap info command
-`imagemaps.list` - grants access to /imagemap list command
-`imagemaps.reload` - grants access to /imagemap reload command
-`imagemaps.help` - grants access to /imagemap help command
-`imagemaps.admin` - grants access to /imagemap bake, cleanup and debuginfo
-`imagemaps.toggleFixed` - allows to toggle the "fixed" state of frames with a wooden hoe
-`imagemaps.toggleVisible` - allows to toggle the "visible" state of frames with a wooden hoe
+Every sub command has its own permission, so they can be handed out individually.
 
-All permissions are default true for OPs.
+`imagemaps.*` - grants access to all permissions (default: op)
+`imagemaps.place` - /imagemap place (default: op)
+`imagemaps.download` - /imagemap download (default: op)
+`imagemaps.delete` - /imagemap delete (default: op)
+`imagemaps.info` - /imagemap info (default: op)
+`imagemaps.list` - /imagemap list (default: op)
+`imagemaps.reload` - /imagemap reload (default: op)
+`imagemaps.bake` - /imagemap bake (default: op)
+`imagemaps.cleanup` - /imagemap cleanup (default: op)
+`imagemaps.debuginfo` - /imagemap debuginfo (default: op)
+`imagemaps.help` - /imagemap help (default: op)
+
+`imagemaps.frame` - /imagemap frame, **default: everyone**, with one child per property:
+* `imagemaps.frame.invisible` - showing and hiding frames (default: everyone)
+* `imagemaps.frame.fixed` - locking and unlocking frames (default: everyone)
+* `imagemaps.frame.rotatable` - releasing frames for rotation (default: everyone)
+
+Revoke `imagemaps.frame` in LuckPerms to take it away again, or a single child to restrict one property.
+
+### Configuration
+The plugin has no configuration options. The `toggleItem` option of previous versions is gone together with
+the item based frame toggle, an existing `config.yml` is ignored.
 
 ## Building
 The plugin has no dependencies beyond the Paper API and produces a plain jar.
