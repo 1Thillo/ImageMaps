@@ -31,6 +31,7 @@ public class ImageMapCommandHandler implements CommandExecutor, TabCompleter {
         register("bake", new ImageMapBakeCommand(plugin));
         register("cleanup", new ImageMapCleanupCommand(plugin));
         register("debuginfo", new ImageMapDebugInfoCommand(plugin));
+        register("version", new ImageMapVersionCommand(plugin));
         register("help", new ImageMapHelpCommand(plugin, commands), "?");
     }
 

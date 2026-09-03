@@ -26,6 +26,7 @@ public class ImageMapHelpCommand extends ImageMapSubCommand {
         Map.entry("cleanup", " - removes invalid maps from the plugin"),
         Map.entry("debuginfo", " - prints debug output"),
         Map.entry("list", "[page] - lists all files in the images folder"),
+        Map.entry("version", " - shows which version of the plugin is running"),
         Map.entry("help", "[command] - shows help"));
 
     private final Map<String, ImageMapSubCommand> commands;
