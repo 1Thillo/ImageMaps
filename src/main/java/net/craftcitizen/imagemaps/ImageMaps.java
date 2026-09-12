@@ -196,6 +196,8 @@ public class ImageMaps extends JavaPlugin implements Listener {
     /**
      * Every item frame belonging to the same image as the given one, or just that frame when it does not hold an
      * image map. The search is bounded by how large the image is, so it never looks further than it has to.
+     *
+     * @return the frames, or null if the image reaches past the border of the region this is running on
      */
     Collection<ItemFrame> getImageFrames(ItemFrame origin) {
         ImageMap definition = getImageMap(origin);
@@ -211,6 +213,11 @@ public class ImageMaps extends JavaPlugin implements Listener {
                                                                    definition.getScale());
             reach += Math.max(size.getKey(), size.getValue());
         }
+
+        // Looking for entities around the whole image may reach past a region border, which a thread is not
+        // allowed to do on a regionised server. Report that instead of tripping a thread check.
+        if (!getServer().isOwnedByCurrentRegion(origin.getLocation(), (reach >> 4) + 1))
+            return null;
 
         List<ItemFrame> frames = new ArrayList<>();
 
