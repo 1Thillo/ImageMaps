@@ -72,9 +72,13 @@ public class ImageMaps extends JavaPlugin implements Listener {
     /**
      * The known image maps, both directions. Placing the same tile of the same image twice reuses the existing map,
      * looking a map up by its id is needed to attach a renderer once the server loads it.
+     * <p>
+     * Concurrent because on a regionised server these are reached from several region threads at once: commands
+     * run on the region of whoever typed them, map initialisation on the region that loaded the map, and saving
+     * reads the whole thing from an async thread.
      */
-    private final Map<ImageMap, Integer> maps = new HashMap<>();
-    private final Map<Integer, ImageMap> mapsById = new HashMap<>();
+    private final Map<ImageMap, Integer> maps = new ConcurrentHashMap<>();
+    private final Map<Integer, ImageMap> mapsById = new ConcurrentHashMap<>();
 
     /**
      * Resolution and modification stamp per image. A few dozen bytes per file, as opposed to the fully decoded
@@ -83,7 +87,7 @@ public class ImageMaps extends JavaPlugin implements Listener {
     private final ConcurrentMap<String, ImageInfo> imageInfo = new ConcurrentHashMap<>();
 
     /** Players that ran /imagemap place and have not clicked a block yet. */
-    private final Map<UUID, PlacementData> pendingPlacements = new HashMap<>();
+    private final Map<UUID, PlacementData> pendingPlacements = new ConcurrentHashMap<>();
 
     private MapTileCache tileCache;
     private NamespacedKey rotatableKey;
