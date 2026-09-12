@@ -8,5 +8,6 @@ public enum PlacementResult {
     INSUFFICIENT_SPACE,
     SUCCESS,
     MISSING_IMAGE,
+    CROSSES_REGION,
     OVERLAPPING_ENTITY;
 }

@@ -521,6 +521,10 @@ public class ImageMaps extends JavaPlugin implements Listener {
             case MISSING_IMAGE:
                 MessageUtil.sendMessage(player, MessageLevel.WARNING, "The image could no longer be read.");
                 break;
+            case CROSSES_REGION:
+                MessageUtil.sendMessage(player, MessageLevel.NORMAL,
+                                        "Map couldn't be placed, the image would reach past a region border. Move a few blocks and try again.");
+                break;
             case SUCCESS:
                 break;
         }
@@ -548,6 +552,18 @@ public class ImageMaps extends JavaPlugin implements Listener {
 
         if (widthDirection == null || heightDirection == null)
             return PlacementResult.INVALID_DIRECTION;
+
+        // On a regionised server a thread may only touch the blocks and entities of its own region, and an image
+        // is large enough to reach past a region boundary. Everything below reads block types and looks for
+        // entities, so refuse up front rather than tripping a thread check halfway through placing the frames.
+        // On a plain server this always passes, there the whole world belongs to the one region.
+        for (int x = 0; x < size.getKey(); x++)
+            for (int y = 0; y < size.getValue(); y++)
+                if (!getServer().isOwnedByCurrentRegion(b.getRelative(widthDirection, x)
+                                                         .getRelative(heightDirection, y))
+                    || !getServer().isOwnedByCurrentRegion(block.getRelative(widthDirection, x)
+                                                                .getRelative(heightDirection, y)))
+                    return PlacementResult.CROSSES_REGION;
 
         // check for space
         for (int x = 0; x < size.getKey(); x++)
