@@ -149,8 +149,11 @@ public class ImageMaps extends JavaPlugin implements Listener {
         // The client predicts the rotation and is sent no correction when the interaction is refused, so the
         // image looks torn until the frame happens to be sent again. Re-setting the item marks the frame's data
         // dirty, which resyncs it to everyone watching.
+        //
+        // This touches an entity, so it belongs on that entity's scheduler rather than the global one. The
+        // retired callback fires when the frame is gone by then, in which case there is nothing left to resync.
         ItemFrame frame = event.getItemFrame();
-        getServer().getGlobalRegionScheduler().run(this, task -> frame.setItem(frame.getItem(), false));
+        frame.getScheduler().run(this, task -> frame.setItem(frame.getItem(), false), null);
     }
 
     /**
