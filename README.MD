@@ -8,7 +8,7 @@ This can be used to create info graphics, custom paintings and even the appearan
 ![Example Screenshot](./screenshot.png)
 
 ## Installation
-You will need a server running Paper 26.2 or newer and Java 25.
+You will need a server running Paper 26.2 or newer and Java 25. Folia is supported, see below.
 
 Put the plugin into your servers `plugins` folder and start it up. A folder for the plugin will be created
 automatically. You can place your images in the `images` folder inside it.
@@ -124,6 +124,22 @@ Operators only:
 
 On a public server consider revoking `imagemaps.frame.fixed` and `imagemaps.frame.rotatable`, or
 `imagemaps.frame` as a whole: they let any player unlock a placed image and then break or rotate it.
+
+### Folia
+The plugin runs on Folia. Image conversion happens on an async thread, frame changes run on the scheduler of the
+frame they belong to, and the shared state is safe to reach from several regions at once.
+
+Folia splits a world into regions that are ticked independently, and a thread may only touch the blocks and
+entities of its own region. Two operations look at a whole image at once and are therefore limited by that:
+
+* placing an image
+* `/imagemap frame`, which changes every frame of the image you are looking at
+
+If the image reaches past a region border, both refuse with a message and change nothing. Moving a few blocks
+and trying again is usually enough, since regions cover a large area and merge while they are next to each other.
+
+An image that already spans a border is not a problem in itself. Each of its frames is ticked by its own region
+and renders normally.
 
 ### Configuration
 The plugin has no configuration options. The `toggleItem` option of previous versions is gone together with
