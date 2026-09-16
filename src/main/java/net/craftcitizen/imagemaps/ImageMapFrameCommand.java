@@ -66,6 +66,12 @@ public class ImageMapFrameCommand extends ImageMapSubCommand {
 
         Collection<ItemFrame> frames = getPlugin().getImageFrames(frame);
 
+        if (frames == null) {
+            MessageUtil.sendMessage(sender, MessageLevel.WARNING,
+                                    "This image reaches past a region border and can't be changed in one go.");
+            return;
+        }
+
         for (ItemFrame target : frames)
             switch (property) {
                 case "fixed" -> target.setFixed(value);

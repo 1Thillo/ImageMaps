@@ -72,9 +72,13 @@ public class ImageMaps extends JavaPlugin implements Listener {
     /**
      * The known image maps, both directions. Placing the same tile of the same image twice reuses the existing map,
      * looking a map up by its id is needed to attach a renderer once the server loads it.
+     * <p>
+     * Concurrent because on a regionised server these are reached from several region threads at once: commands
+     * run on the region of whoever typed them, map initialisation on the region that loaded the map, and saving
+     * reads the whole thing from an async thread.
      */
-    private final Map<ImageMap, Integer> maps = new HashMap<>();
-    private final Map<Integer, ImageMap> mapsById = new HashMap<>();
+    private final Map<ImageMap, Integer> maps = new ConcurrentHashMap<>();
+    private final Map<Integer, ImageMap> mapsById = new ConcurrentHashMap<>();
 
     /**
      * Resolution and modification stamp per image. A few dozen bytes per file, as opposed to the fully decoded
@@ -83,7 +87,7 @@ public class ImageMaps extends JavaPlugin implements Listener {
     private final ConcurrentMap<String, ImageInfo> imageInfo = new ConcurrentHashMap<>();
 
     /** Players that ran /imagemap place and have not clicked a block yet. */
-    private final Map<UUID, PlacementData> pendingPlacements = new HashMap<>();
+    private final Map<UUID, PlacementData> pendingPlacements = new ConcurrentHashMap<>();
 
     private MapTileCache tileCache;
     private NamespacedKey rotatableKey;
@@ -149,8 +153,11 @@ public class ImageMaps extends JavaPlugin implements Listener {
         // The client predicts the rotation and is sent no correction when the interaction is refused, so the
         // image looks torn until the frame happens to be sent again. Re-setting the item marks the frame's data
         // dirty, which resyncs it to everyone watching.
+        //
+        // This touches an entity, so it belongs on that entity's scheduler rather than the global one. The
+        // retired callback fires when the frame is gone by then, in which case there is nothing left to resync.
         ItemFrame frame = event.getItemFrame();
-        getServer().getGlobalRegionScheduler().run(this, task -> frame.setItem(frame.getItem(), false));
+        frame.getScheduler().run(this, task -> frame.setItem(frame.getItem(), false), null);
     }
 
     /**
@@ -189,6 +196,8 @@ public class ImageMaps extends JavaPlugin implements Listener {
     /**
      * Every item frame belonging to the same image as the given one, or just that frame when it does not hold an
      * image map. The search is bounded by how large the image is, so it never looks further than it has to.
+     *
+     * @return the frames, or null if the image reaches past the border of the region this is running on
      */
     Collection<ItemFrame> getImageFrames(ItemFrame origin) {
         ImageMap definition = getImageMap(origin);
@@ -204,6 +213,11 @@ public class ImageMaps extends JavaPlugin implements Listener {
                                                                    definition.getScale());
             reach += Math.max(size.getKey(), size.getValue());
         }
+
+        // Looking for entities around the whole image may reach past a region border, which a thread is not
+        // allowed to do on a regionised server. Report that instead of tripping a thread check.
+        if (!getServer().isOwnedByCurrentRegion(origin.getLocation(), (reach >> 4) + 1))
+            return null;
 
         List<ItemFrame> frames = new ArrayList<>();
 
@@ -514,6 +528,10 @@ public class ImageMaps extends JavaPlugin implements Listener {
             case MISSING_IMAGE:
                 MessageUtil.sendMessage(player, MessageLevel.WARNING, "The image could no longer be read.");
                 break;
+            case CROSSES_REGION:
+                MessageUtil.sendMessage(player, MessageLevel.NORMAL,
+                                        "Map couldn't be placed, the image would reach past a region border. Move a few blocks and try again.");
+                break;
             case SUCCESS:
                 break;
         }
@@ -541,6 +559,18 @@ public class ImageMaps extends JavaPlugin implements Listener {
 
         if (widthDirection == null || heightDirection == null)
             return PlacementResult.INVALID_DIRECTION;
+
+        // On a regionised server a thread may only touch the blocks and entities of its own region, and an image
+        // is large enough to reach past a region boundary. Everything below reads block types and looks for
+        // entities, so refuse up front rather than tripping a thread check halfway through placing the frames.
+        // On a plain server this always passes, there the whole world belongs to the one region.
+        for (int x = 0; x < size.getKey(); x++)
+            for (int y = 0; y < size.getValue(); y++)
+                if (!getServer().isOwnedByCurrentRegion(b.getRelative(widthDirection, x)
+                                                         .getRelative(heightDirection, y))
+                    || !getServer().isOwnedByCurrentRegion(block.getRelative(widthDirection, x)
+                                                                .getRelative(heightDirection, y)))
+                    return PlacementResult.CROSSES_REGION;
 
         // check for space
         for (int x = 0; x < size.getKey(); x++)
