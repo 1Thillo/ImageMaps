@@ -1,0 +1,24 @@
+# Dependabot opens pull requests when a dependency or GitHub Action has a new version.
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Moving to a new Minecraft version (e.g. 26.2 -> 26.3) is a deliberate port, not a routine
+      # update. Newer builds for the same Minecraft version still come through.
+      - dependency-name: "io.papermc.paper:paper-api"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      # minor and patch updates arrive together in one PR instead of one PR each
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
