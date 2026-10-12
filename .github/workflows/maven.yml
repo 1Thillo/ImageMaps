@@ -11,6 +11,8 @@ name: Java CI with Maven
 on:
   pull_request:
     branches: [ "master" ]
+    # "edited" includes changing a PR's base branch, so stacked PRs get checked after retargeting
+    types: [ opened, synchronize, reopened, edited ]
   workflow_dispatch:
   release:
     types: [created]
