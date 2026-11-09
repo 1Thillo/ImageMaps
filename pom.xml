@@ -11,7 +11,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>25</maven.compiler.release>
-    <paper.version>26.3.build.245-stable</paper.version>
+    <paper.version>26.3.build.246-stable</paper.version>
   </properties>
 
   <repositories>
